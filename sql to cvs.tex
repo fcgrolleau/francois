@@ -1,0 +1,54 @@
+-- access the postgre database
+psql 'dbname=mimic user=postgres options=--search_path=mimiciii'
+
+
+SQL code
+-- Taken from https://github.com/MIT-LCP/mimic-code/blob/master/concepts/severityscores/sapsii.sql
+-- Variables used in SAPS II:
+--  Age, GCS
+--  VITALS: Heart rate, systolic blood pressure, temperature
+--  FLAGS: ventilation/cpap
+--  IO: urine output
+--  LABS: PaO2/FiO2 ratio, blood urea nitrogen, WBC, potassium, sodium, HCO3
+
+-- Run the preprocessing of data
+\include /Users/Francois-Camille/mimic-code/concepts/firstday/urine-output-first-day.sql
+-- \include /Users/Francois-Camille/mimic-code/concepts/firstday/ventilation-first-day.sql
+\include /Users/Francois-Camille/mimic-code/concepts/durations/ventilation-durations.sql
+\include /Users/Francois-Camille/mimic-code/concepts/firstday/vitals-first-day.sql
+\include /Users/Francois-Camille/mimic-code/concepts/firstday/gcs-first-day.sql
+\include /Users/Francois-Camille/mimic-code/concepts/firstday/labs-first-day.sql
+\include /Users/Francois-Camille/mimic-code/concepts/firstday/blood-gas-first-day.sql
+\include /Users/Francois-Camille/mimic-code/concepts/firstday/blood-gas-first-day-arterial.sql
+
+-- Run the SAPS-II code after having modified it to create a table instead of a mat view (ligne 33)
+\include /Users/Francois-Camille/mimic-code/concepts/severityscores/sapsii.sql
+
+-- Produce hospital mortality
+\include /Users/Francois-Camille/mimic-code/concepts/cookbook/mortality.sql
+
+-- describe table sapsii
+\d+ sapsii
+
+-- export predictors in a csv file
+\copy (Select * From sapsii) to '/Users/Francois-Camille/table.csv' With CSV HEADER
+
+-- get patients ages
+\include /Users/Francois-Camille/mimic-code/concepts/demographics/icustay-detail.sql
+
+-- look at the resulting materialized view (code needs to go in 2 successive lines)
+SELECT *
+FROM icustay_detail;
+
+-- export icustay_detail in a csv file
+\copy (Select * From icustay_detail) to '/Users/Francois-Camille/ages.csv' With CSV HEADER
+
+-- get first day lab values
+\include /Users/Francois-Camille/mimic-code/concepts/firstday/labs-first-day.sql
+
+-- look at the resulting materialized view (code needs to go in 2 successive lines)
+SELECT *
+FROM labsfirstday;
+
+-- export labsfirstday in a csv file
+\copy (Select * From labsfirstday) to '/Users/Francois-Camille/labsfirstday.csv' With CSV HEADER
